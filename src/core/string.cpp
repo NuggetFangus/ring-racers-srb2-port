@@ -1085,7 +1085,8 @@ uint8_t Utf16Iter::size() const
 String vformat(fmt::string_view fmt, fmt::format_args args)
 {
 	auto buf = fmt::memory_buffer();
-	vformat_to(buf, fmt, args);
+	// fmt::appender: gcc 8 hard-errors on passing the buffer directly to the iterator overload.
+	fmt::vformat_to(fmt::appender(buf), fmt, args);
 	return { buf.data(), buf.size() };
 }
 

@@ -57,8 +57,10 @@ private:
 
 	srb2::HashMap<const patch_t*, Entry> entries_;
 
-	std::unique_ptr<stbrp_context> rp_ctx {nullptr};
-	std::unique_ptr<stbrp_node[]> rp_nodes {nullptr};
+	// No {nullptr} initializers: gcc 8 instantiates the unique_ptr destructor here,
+	// where stbrp_* are still incomplete types. unique_ptr is null by default anyway.
+	std::unique_ptr<stbrp_context> rp_ctx;
+	std::unique_ptr<stbrp_node[]> rp_nodes;
 
 	friend class PatchAtlasCache;
 

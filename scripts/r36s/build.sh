@@ -9,6 +9,8 @@ set -euo pipefail
 SRC=/src
 BUILD=/tmp/build
 OUT=/out
+SDL_VER=2.30.9
+SDL_PREFIX=/opt/sdl2
 mkdir -p "$OUT"
 
 # debian:buster saiu do mirror principal; usa o arquivo.
@@ -25,9 +27,11 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
+# Sem libsdl2-dev: o SDL2 do buster (2.0.9) é velho demais; compilamos um novo abaixo.
 apt-get install -y --no-install-recommends \
-	build-essential git ca-certificates pkg-config python3 python3-pip python3-setuptools \
-	libsdl2-dev libcurl4-openssl-dev zlib1g-dev libpng-dev libopus-dev
+	build-essential git curl ca-certificates pkg-config python3 python3-pip python3-setuptools \
+	libcurl4-openssl-dev zlib1g-dev libpng-dev libopus-dev \
+	libasound2-dev libudev-dev libdrm-dev libgbm-dev libegl1-mesa-dev libgles2-mesa-dev
 
 # cmake do buster é 3.13; o projeto pede >= 3.14.
 python3 -m pip install -U pip
@@ -38,16 +42,40 @@ git config --global --add safe.directory "$SRC"
 echo "== glibc do container: $(ldd --version | head -1)"
 echo "== gcc: $(gcc --version | head -1)"
 
-# -lstdc++fs: o gcc 8 precisa disso para std::filesystem.
 CPUFLAGS="-mcpu=cortex-a35 -O2"
+
+# --- SDL2 novo, estático, com KMSDRM + GLES (sem X11/Wayland) ---
+# O jogo usa SDL_GetErrorMsg (2.0.14+) e SDL_WINDOWEVENT_DISPLAY_CHANGED (2.0.18+).
+# libEGL/libgbm/libdrm são carregados via dlopen em tempo de execução (os do aparelho).
+mkdir -p /tmp/sdl && cd /tmp/sdl
+curl -fsSL "https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VER}/SDL2-${SDL_VER}.tar.gz" | tar xz
+cmake -S "SDL2-${SDL_VER}" -B sdl-build -G Ninja \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_C_FLAGS="$CPUFLAGS" \
+	-DCMAKE_INSTALL_PREFIX="$SDL_PREFIX" \
+	-DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_STATIC_PIC=ON -DSDL_TEST=OFF \
+	-DSDL_X11=OFF -DSDL_WAYLAND=OFF \
+	-DSDL_KMSDRM=ON -DSDL_OPENGLES=ON -DSDL_OPENGL=OFF -DSDL_VULKAN=OFF \
+	-DSDL_PULSEAUDIO=OFF -DSDL_PIPEWIRE=OFF -DSDL_JACK=OFF -DSDL_SNDIO=OFF \
+	-DSDL_DBUS=OFF -DSDL_IBUS=OFF
+cmake --build sdl-build -j"$(nproc)"
+cmake --install sdl-build
+cd /
+
+# --- Ring Racers ---
+# Opções espelham o build Android (android/app/build.gradle): só o backend RHI.
+# -lstdc++fs: o gcc 8 precisa disso para std::filesystem.
 cmake -S "$SRC" -B "$BUILD" -G Ninja \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_C_FLAGS="$CPUFLAGS" \
 	-DCMAKE_CXX_FLAGS="$CPUFLAGS" \
 	-DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
 	-DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" \
-	-DCMAKE_PROJECT_INCLUDE="$SRC/scripts/r36s/sdl2-shim.cmake" \
+	-DSDL2_DIR="$SDL_PREFIX/lib/cmake/SDL2" \
 	-DSRB2_CONFIG_GLES2=ON \
+	-DSRB2_CONFIG_HWRENDER=OFF \
+	-DSRB2_CONFIG_USEASM=OFF \
+	-DSRB2_CONFIG_EXECINFO=OFF \
 	-DSRB2_CONFIG_ENABLE_WEBM_MOVIES=OFF \
 	-DSRB2_CONFIG_ENABLE_DISCORDRPC=OFF
 
