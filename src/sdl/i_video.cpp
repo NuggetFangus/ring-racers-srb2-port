@@ -22,7 +22,7 @@
 #include <imgui.h>
 
 #include "../rhi/rhi.hpp"
-#ifdef ANDROID
+#if defined(ANDROID) || defined(SRB2_GLES2)
 #include "../rhi/gles2/gles2_rhi.hpp"
 #include "rhi_gles2_platform.hpp"
 #else
@@ -1349,7 +1349,7 @@ static SDL_bool Impl_CreateContext(void)
 	if (!sdlglcontext)
 	{
 		SDL_GL_ResetAttributes();
-#ifdef ANDROID
+#if defined(ANDROID) || defined(SRB2_GLES2)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -1369,7 +1369,7 @@ static SDL_bool Impl_CreateContext(void)
 
 	if (!g_rhi)
 	{
-#ifdef ANDROID
+#if defined(ANDROID) || defined(SRB2_GLES2)
 		std::unique_ptr<rhi::SdlGles2Platform> platform = std::make_unique<rhi::SdlGles2Platform>();
 		platform->window = window;
 		g_rhi = std::make_unique<rhi::Gles2Rhi>(std::move(platform), reinterpret_cast<rhi::Gles2LoadFunc>(SDL_GL_GetProcAddress));
@@ -1495,7 +1495,7 @@ static SDL_bool Impl_CreateWindow(SDL_bool fullscreen)
 	if (window != NULL)
 		return SDL_FALSE;
 
-#if defined(ANDROID) || defined(__ANDROID__)
+#if defined(ANDROID) || defined(__ANDROID__) || defined(SRB2_GLES2)
 	flags |= SDL_WINDOW_FULLSCREEN;
 #else
 	if (fullscreen)

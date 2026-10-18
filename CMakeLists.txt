@@ -72,6 +72,7 @@ option(
 	ON
 )
 option(SRB2_CONFIG_ENABLE_WEBM_MOVIES "Enable WebM recording support" ON)
+option(SRB2_CONFIG_GLES2 "Use the GLES2 RHI backend on non-Android targets (ARM Linux handhelds such as the R36S)" OFF)
 option(SRB2_CONFIG_ENABLE_DISCORDRPC "Enable Discord RPC features" ON)
 option(SRB2_CONFIG_HWRENDER "Enable hardware render (OpenGL) support" ON)
 option(SRB2_CONFIG_STATIC_OPENGL "Enable static linking GL (do not do this)" OFF)

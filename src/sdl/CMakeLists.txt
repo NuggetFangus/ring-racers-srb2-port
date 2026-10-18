@@ -13,12 +13,15 @@ target_sources(SRB2SDL2 PRIVATE
 	hwsym_sdl.c
 )
 
-if(ANDROID)
+if(ANDROID OR SRB2_CONFIG_GLES2)
 	target_sources(SRB2SDL2 PRIVATE
 		rhi_gles2_platform.cpp
 		rhi_gles2_platform.hpp
 	)
-	target_compile_definitions(SRB2SDL2 PRIVATE FORCESDLMAIN NOMUMBLE)
+	target_compile_definitions(SRB2SDL2 PRIVATE SRB2_GLES2)
+	if(ANDROID)
+		target_compile_definitions(SRB2SDL2 PRIVATE FORCESDLMAIN NOMUMBLE)
+	endif()
 else()
 	target_sources(SRB2SDL2 PRIVATE
 		rhi_gl2_platform.cpp

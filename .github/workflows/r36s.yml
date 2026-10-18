@@ -1,0 +1,44 @@
+name: R36S (Linux arm64 / GLES2)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Imagem Docker base (define a glibc alvo). Padrão: Debian 10 (glibc 2.28)"
+        default: "debian:buster"
+  push:
+    paths:
+      - ".github/workflows/r36s.yml"
+      - "scripts/r36s/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Compilar dentro do container (glibc antiga)
+        run: |
+          mkdir -p out
+          docker run --rm \
+            -v "$PWD":/src \
+            -v "$PWD/out":/out \
+            "${{ github.event.inputs.image || 'debian:buster' }}" \
+            bash /src/scripts/r36s/build.sh
+
+      - name: Montar pacote para o ArkOS
+        run: |
+          mkdir -p pkg/ports/ringracers
+          cp out/ringracers pkg/ports/ringracers/ringracers
+          cp scripts/r36s/RingRacers.sh pkg/ports/RingRacers.sh
+          chmod +x pkg/ports/RingRacers.sh pkg/ports/ringracers/ringracers
+          echo "Coloque os .pk3 oficiais (main.kart etc.) em ports/ringracers/" > pkg/ports/ringracers/LEIAME.txt
+          tar -C pkg -czf ringracers-r36s.tar.gz ports
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ringracers-r36s
+          path: ringracers-r36s.tar.gz
