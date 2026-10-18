@@ -68,6 +68,8 @@ public:
 	PatchAtlas& operator=(const PatchAtlas&) = delete;
 	PatchAtlas(PatchAtlas&&);
 	PatchAtlas& operator=(PatchAtlas&&);
+	// Defined in the .cpp, where the stbrp types are complete (gcc 8 needs this).
+	~PatchAtlas();
 
 	/// @brief Get the Luminance-Alpha RHI texture handle for this atlas texture
 	rhi::Handle<rhi::Texture> texture() const noexcept { return tex_; }

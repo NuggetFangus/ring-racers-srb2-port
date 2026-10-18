@@ -138,6 +138,7 @@ PatchAtlas::PatchAtlas(Handle<Texture> texture, uint32_t size) : tex_(texture), 
 
 PatchAtlas::PatchAtlas(PatchAtlas&&) = default;
 PatchAtlas& PatchAtlas::operator=(PatchAtlas&&) = default;
+PatchAtlas::~PatchAtlas() = default;
 
 void PatchAtlas::pack_rects(tcb::span<stbrp_rect> rects)
 {

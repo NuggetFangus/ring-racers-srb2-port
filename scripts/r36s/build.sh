@@ -51,7 +51,8 @@ cmake -S "$SRC" -B "$BUILD" -G Ninja \
 	-DSRB2_CONFIG_ENABLE_WEBM_MOVIES=OFF \
 	-DSRB2_CONFIG_ENABLE_DISCORDRPC=OFF
 
-cmake --build "$BUILD" -j"$(nproc)"
+# -k 0: não para no primeiro erro, para o log mostrar todos os problemas de uma vez.
+cmake --build "$BUILD" -j"$(nproc)" -- -k 0
 
 BIN=$(find "$BUILD/bin" -maxdepth 1 -type f -perm -u+x | head -1)
 echo "== binário: $BIN"
