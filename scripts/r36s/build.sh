@@ -13,7 +13,13 @@ mkdir -p "$OUT"
 
 # debian:buster saiu do mirror principal; usa o arquivo.
 if grep -q buster /etc/os-release 2>/dev/null; then
-	echo 'deb http://archive.debian.org/debian buster main' > /etc/apt/sources.list
+	# Precisa incluir updates e security: a imagem já vem com pacotes (ex. zlib1g)
+	# da versão de segurança, e sem esses repositórios as dependências -dev conflitam.
+	cat > /etc/apt/sources.list <<'EOF'
+deb http://archive.debian.org/debian buster main
+deb http://archive.debian.org/debian buster-updates main
+deb http://archive.debian.org/debian-security buster/updates main
+EOF
 	echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive
 fi
 
