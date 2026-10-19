@@ -694,6 +694,25 @@ static void Impl_HandleControllerAxisEvent(SDL_ControllerAxisEvent evt)
 
 static void Impl_HandleControllerButtonEvent(SDL_ControllerButtonEvent evt, Uint32 type)
 {
+#ifdef SRB2_GLES2
+	// Handheld builds (R36S): SELECT (Back) + START together quits the game.
+	if (type == SDL_CONTROLLERBUTTONDOWN &&
+		(evt.button == SDL_CONTROLLER_BUTTON_BACK || evt.button == SDL_CONTROLLER_BUTTON_START))
+	{
+		SDL_GameController* pad = SDL_GameControllerFromInstanceID(evt.which);
+		const SDL_GameControllerButton other = (evt.button == SDL_CONTROLLER_BUTTON_BACK)
+			? SDL_CONTROLLER_BUTTON_START
+			: SDL_CONTROLLER_BUTTON_BACK;
+
+		if (pad != NULL && SDL_GameControllerGetButton(pad, other))
+		{
+			LUA_HookBool(true, HOOK(GameQuit));
+			I_Quit();
+			return;
+		}
+	}
+#endif
+
 	event_t event;
 
 	event.device = 1 + evt.which;

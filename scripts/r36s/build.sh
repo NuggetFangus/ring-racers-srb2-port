@@ -65,22 +65,47 @@ cd /
 # --- Ring Racers ---
 # Opções espelham o build Android (android/app/build.gradle): só o backend RHI.
 # -lstdc++fs: o gcc 8 precisa disso para std::filesystem.
-cmake -S "$SRC" -B "$BUILD" -G Ninja \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_C_FLAGS="$CPUFLAGS" \
-	-DCMAKE_CXX_FLAGS="$CPUFLAGS" \
-	-DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
-	-DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" \
-	-DSDL2_DIR="$SDL_PREFIX/lib/cmake/SDL2" \
-	-DSRB2_CONFIG_GLES2=ON \
-	-DSRB2_CONFIG_HWRENDER=OFF \
-	-DSRB2_CONFIG_USEASM=OFF \
-	-DSRB2_CONFIG_EXECINFO=OFF \
-	-DSRB2_CONFIG_ENABLE_WEBM_MOVIES=OFF \
-	-DSRB2_CONFIG_ENABLE_DISCORDRPC=OFF
+# Otimização: o modo Release do CMake já aplica -O3; aqui reforçamos e acrescentamos
+# flags seguras. SEM -ffast-math de propósito: o jogo precisa ser determinístico
+# (replays e netplay dependem disso).
+RR_FLAGS="-mcpu=cortex-a35 -O3 -fno-math-errno -fno-trapping-math -ffunction-sections -fdata-sections"
 
-# -k 0: não para no primeiro erro, para o log mostrar todos os problemas de uma vez.
-cmake --build "$BUILD" -j"$(nproc)" -- -k 0
+# $1 = diretório de build, $2 = LTO (ON/OFF)
+build_rr() {
+	local dir="$1" lto="$2"
+	local ldflags="-static-libstdc++ -static-libgcc -Wl,--gc-sections"
+	if [ "$lto" = "ON" ]; then
+		ldflags="$ldflags -flto=$(nproc)"
+	fi
+	rm -rf "$dir"
+	cmake -S "$SRC" -B "$dir" -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INTERPROCEDURAL_OPTIMIZATION="$lto" \
+		-DCMAKE_C_FLAGS="$RR_FLAGS" \
+		-DCMAKE_CXX_FLAGS="$RR_FLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$ldflags" \
+		-DCMAKE_CXX_STANDARD_LIBRARIES="-lstdc++fs" \
+		-DSDL2_DIR="$SDL_PREFIX/lib/cmake/SDL2" \
+		-DSRB2_CONFIG_GLES2=ON \
+		-DSRB2_CONFIG_HWRENDER=OFF \
+		-DSRB2_CONFIG_USEASM=OFF \
+		-DSRB2_CONFIG_EXECINFO=OFF \
+		-DSRB2_CONFIG_ENABLE_WEBM_MOVIES=OFF \
+		-DSRB2_CONFIG_ENABLE_DISCORDRPC=OFF || return 1
+	# -k 0: não para no primeiro erro, para o log mostrar todos os problemas de uma vez.
+	cmake --build "$dir" -j"$(nproc)" -- -k 0
+}
+
+# Tenta com LTO (mais rápido em execução). Se o gcc 8 falhar com LTO, refaz sem LTO
+# no mesmo run, para você não perder um ciclo de build.
+if build_rr "$BUILD" ON; then
+	echo "== build com LTO: OK"
+else
+	echo "== AVISO: build com LTO falhou; refazendo sem LTO"
+	BUILD="${BUILD}-nolto"
+	build_rr "$BUILD" OFF
+	echo "== build sem LTO: OK"
+fi
 
 BIN=$(find "$BUILD/bin" -maxdepth 1 -type f -perm -u+x | head -1)
 echo "== binário: $BIN"
