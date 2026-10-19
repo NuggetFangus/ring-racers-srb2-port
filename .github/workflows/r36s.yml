@@ -35,7 +35,12 @@ jobs:
           cp out/ringracers pkg/ports/ringracers/ringracers
           cp scripts/r36s/RingRacers.sh pkg/ports/RingRacers.sh
           chmod +x pkg/ports/RingRacers.sh pkg/ports/ringracers/ringracers
-          echo "Coloque os .pk3 oficiais (main.kart etc.) em ports/ringracers/" > pkg/ports/ringracers/LEIAME.txt
+          printf '%s\n' \
+            "Copie os arquivos do Ring Racers OFICIAL v2.4 para esta pasta, mantendo a estrutura:" \
+            "  ports/ringracers/bios.pk3" \
+            "  ports/ringracers/data/*.pk3   (scripts, gfx, textures_*, chars, followers, maps, unlocks, staffghosts, shaders, sounds, music...)" \
+            "As versoes precisam ser exatamente a 2.4 (o jogo confere o hash de cada arquivo)." \
+            > pkg/ports/ringracers/LEIAME.txt
           tar -C pkg -czf ringracers-r36s.tar.gz ports
 
       - uses: actions/upload-artifact@v4
