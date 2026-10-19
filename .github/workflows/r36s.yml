@@ -33,6 +33,7 @@ jobs:
         run: |
           mkdir -p pkg/ports/ringracers
           cp out/ringracers pkg/ports/ringracers/ringracers
+          cp -r out/libs pkg/ports/ringracers/libs
           cp scripts/r36s/RingRacers.sh pkg/ports/RingRacers.sh
           chmod +x pkg/ports/RingRacers.sh pkg/ports/ringracers/ringracers
           printf '%s\n' \

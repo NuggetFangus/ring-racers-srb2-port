@@ -90,3 +90,30 @@ cp "$BIN" "$OUT/ringracers"
 # Mostra a versão máxima de glibc exigida (deve ser <= a do ArkOS).
 objdump -T "$OUT/ringracers" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -3 || true
 ldd "$OUT/ringracers" || true
+
+# --- Empacota as bibliotecas compartilhadas que o binário usa ---
+# O libpng do container tem o patch APNG (png_set_acTL); o do ArkOS não tem, e o jogo
+# falhava com "undefined symbol: png_set_acTL". Levando as libs junto (e usando
+# LD_LIBRARY_PATH no script de lançamento) o binário não depende das do aparelho.
+# NÃO empacotamos: glibc, nem libs de GPU/áudio/udev (essas precisam ser as do aparelho).
+mkdir -p "$OUT/libs"
+ldd "$OUT/ringracers" | awk '/=> \//{print $3}' | while read -r lib; do
+	case "$(basename "$lib")" in
+		libc.so.*|libm.so.*|libpthread.so.*|libdl.so.*|librt.so.*|libresolv.so.*|libutil.so.*|libnsl.so.*|libnss_*|libgcc_s.so.*) ;;
+		libEGL*|libGL*|libgbm*|libdrm*|libasound*|libudev*|libpulse*|libMali*|libwayland*|libX*) ;;
+		*) cp -L "$lib" "$OUT/libs/" ;;
+	esac
+done
+echo "== libs empacotadas:"; ls -1 "$OUT/libs"
+
+# Confirma que o libpng empacotado tem APNG (senão o jogo não abre).
+PNGLIB=$(ls "$OUT"/libs/libpng16.so* 2>/dev/null | head -1 || true)
+if [ -n "$PNGLIB" ]; then
+	# (arquivo temporário em vez de pipe: "grep -q" + pipefail daria falso erro por SIGPIPE)
+	nm -D "$PNGLIB" > /tmp/pngsyms.txt
+	if grep -q png_set_acTL /tmp/pngsyms.txt; then
+		echo "OK: $PNGLIB exporta png_set_acTL"
+	else
+		echo "ERRO: $PNGLIB sem png_set_acTL"; exit 1
+	fi
+fi

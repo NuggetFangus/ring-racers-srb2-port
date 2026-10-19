@@ -13,6 +13,9 @@ cd "$GAMEDIR" || exit 1
 export HOME="$GAMEDIR"
 # Onde o jogo procura os .pk3 oficiais.
 export SRB2WADDIR="$GAMEDIR"
+# Bibliotecas que vêm junto com o jogo (libpng com APNG, curl, opus...) têm prioridade
+# sobre as do sistema, que podem estar faltando ou ser de outra versão.
+export LD_LIBRARY_PATH="$GAMEDIR/libs:$LD_LIBRARY_PATH"
 # SDL2 do ArkOS usa KMSDRM por padrão; descomente se precisar forçar.
 # export SDL_VIDEODRIVER=kmsdrm
 
